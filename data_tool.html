@@ -1,5 +1,5 @@
 <!-- getDate 获取当前日期的天数 如 20151002 得到的是2 -->
-<!-- getDay  获取当前日期的周几书 如 20151002 得到是 4（周四） -->
+<!-- getDay  获取当前日期的周几数，从周一开始算作第1天 如 20151002 得到是 5（周五），20151004 得到 0 （周日）-->
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -8,7 +8,7 @@
 	<style type="text/css">
 	.check {width:200px;height:200px; border:1px; background:#ff9955}
 	</style>
-	
+
 	<script type="text/javascript">
 	 	const  oneDay  =  1000 * 60 * 60 * 24 ;
 		var e_date = new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 1);
@@ -39,7 +39,7 @@
 	    	document.getElementById("sDate").value = dateformat(s_date);
 	    	document.getElementById("eDate").value = dateformat(e_date);
 	    	makeDate('day');
-	    	
+
 	    }
 
 	    function getWeekDay(date){
@@ -63,14 +63,14 @@
 	    	if(dateType == 'day'){
 
 	    		for (; (e_time - s_time)/(1000 * 60 * 60 * 24) >=0 ;) {
-					var e = document.createElement("input");   
-			        e.type = "checkbox";   
-			        e.id = "child";   
-			        e.value =dateformat(new Date(s_time)) ;    
-			        board.appendChild(e);   
-			        //设置选中   
-			        e.setAttribute("checked","checked");   
-			        //添加文字   
+					var e = document.createElement("input");
+			        e.type = "checkbox";
+			        e.id = "child";
+			        e.value =dateformat(new Date(s_time)) ;
+			        board.appendChild(e);
+			        //设置选中
+			        e.setAttribute("checked","checked");
+			        //添加文字
 			        board.appendChild(document.createTextNode(e.value));
 			        s_time  +=  (1000 * 60 * 60 * 24) ;
 				};
@@ -81,13 +81,13 @@
 	    		var new_e_time = e_time + (7 - getWeekDay(e_date))*1000 * 60 * 60 * 24 ;
 	    		while(new_s_time <= new_e_time){
 	    			var monday = dateformat(new Date(new_s_time)) ;
-	    			var e = document.createElement("input");   
-			        e.type = "checkbox";   
-			        e.id = "child";   
-			        e.value =monday + " 至 " + dateformat(new Date(new_s_time + 6*1000 * 60 * 60 * 24));   
+	    			var e = document.createElement("input");
+			        e.type = "checkbox";
+			        e.id = "child";
+			        e.value =monday + " 至 " + dateformat(new Date(new_s_time + 6*1000 * 60 * 60 * 24));
 
-			        board.appendChild(e);  
-			        e.setAttribute("checked","checked");   
+			        board.appendChild(e);
+			        e.setAttribute("checked","checked");
 			        board.appendChild(document.createTextNode(e.value));
 			        new_s_time  +=  (7*1000 * 60 * 60 * 24) ;
 	    		}
@@ -101,65 +101,65 @@
 	    			monthEndTime = new Date(monthStart.getFullYear(), monthStart.getMonth()+1, 1).getTime() - oneDay;
 	    			monthEnd = new Date(monthEndTime);
 
-	    			var e = document.createElement("input");   
-			        e.type = "checkbox";   
-			        e.id = "child";   
-			        e.value =dateformat(monthStart) + " 至 " + dateformat(monthEnd); 
-			        board.appendChild(e);  
-			        e.setAttribute("checked","checked");   
+	    			var e = document.createElement("input");
+			        e.type = "checkbox";
+			        e.id = "child";
+			        e.value =dateformat(monthStart) + " 至 " + dateformat(monthEnd);
+			        board.appendChild(e);
+			        e.setAttribute("checked","checked");
 			        board.appendChild(document.createTextNode(e.value));
 
 			        new_s_time = monthEndTime + oneDay;
 	    		}
-	    		
-	    		
-	    		
+
+
+
 	    	}
-	    	
-	    }	
+
+	    }
 		function changesDate(){
 			var my = document.getElementById("divCell");
 			if (my != null){
         		my.parentNode.removeChild(my);
 			}
-        	var my = document.createElement("divCell");  
+        	var my = document.createElement("divCell");
         	my.id = "divCell";
-		    //添加到页面  
-		    document.body.appendChild(my);    
+		    //添加到页面
+		    document.body.appendChild(my);
 			s_date = new Date(document.getElementById("sDate").value);
 			e_date = new Date(document.getElementById("eDate").value);
 
 			makeDate(getType());
-		}	
+		}
 
 
-		function test4(event) {  
-		    //if(event.value == getType()) {  
-		       //获取div1 
+		function test4(event) {
+		    //if(event.value == getType()) {
+		       //获取div1
 		       //alert(event.target.id);
 		       dom=document.getElementById(event.target.id);
 		       var dateTypeClass = document.getElementsByClassName("dateType");
 		       for (var i = dateTypeClass.length - 1; i >= 0; i--) {
 		       		dateTypeClass[i].style.backgroundColor = "";
 		       };
-			  // dom.setAttribute("style","width:80px;height:40px;border:solid 3px red;") ; 
+			  // dom.setAttribute("style","width:80px;height:40px;border:solid 3px red;") ;
 			   dom.style.backgroundColor="#FFCC80";
 
-		    	
-		    //}  
-		    //if(event.value !== getType()) {  
-		       //获取div1  
-		       //var div1 = document.getElementById('div1');  
-		       //div1.style.backgroundColor="red";  
+
+		    //}
+		    //if(event.value !== getType()) {
+		       //获取div1
+		       //var div1 = document.getElementById('div1');
+		       //div1.style.backgroundColor="red";
 		       //var type = event.value;
 		       //alert(type);
 		      // var dom=document.getElementById(type);
-			  // dom.setAttribute("style","width:80px;height:40px;border:solid 3px red;") ; 
+			  // dom.setAttribute("style","width:80px;height:40px;border:solid 3px red;") ;
 			   //dom.style.backgroundColor="black";
 
-		    //}  
-	    }  
-		
+		    //}
+	    }
+
 	</script>
 </head>
 <body id = 'body'>
@@ -170,31 +170,31 @@
 	    <br>
 		<br>
 	    <br>
-	   
+
 				<input class = "dateType" type='button' id="day" value='  day  ' onmousedown="setType('day'); changesDate(); test4(event); ">
-		  
+
 				<input class = "dateType" type='button' id='week' value='  week  ' onmousedown="setType('week'); changesDate(); test4(event); ">
-		 
+
 				<input class = "dateType" type='button' id='month' value='  month  ' onmousedown="setType('month'); changesDate(); test4(event); ">
-	
+
 		<br>
 	    <br>
 		<br>
 	    <br>
-		    
+
 <!--     	<a id = 'day' value="day" href="javascript:void(0)" onmousedown="changesDate();setType('day'); test4('day'); "> 天day  </a>
 		<a id = 'week' value = 'week' href="javascript:void(0)" onmousedown="changesDate();setType('week'); test4('week'); "> 周week  </a>
 		<a id= 'month' value= 'month' href="javascript:void(0)" onmousedown="changesDate();setType('month'); test4('month'); "> 月month  </a>
  -->
-	  
 
-	
+
+
 	</form>
 
 	<div id='divCell'>
 	</div>
 
- 
+
 
 
 
