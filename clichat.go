@@ -2,6 +2,8 @@ package chat
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"github.com/Unknwon/goconfig"
 	"os"
@@ -17,17 +19,59 @@ type redisConfig struct {
 
 type chatMsg struct {
 	user string
-	time time.Time
-	msg  []byte
+	time int64
+	msg  string
 }
 
 var channel = "chat_channel"
 var user string
+var network bytes.Buffer
+var enc = gob.NewEncoder(&network)
+var dec = gob.NewDecoder(&network)
+
+func (m *chatMsg) GobEncode() ([]byte, error) {
+	w := new(bytes.Buffer)
+	encoder := gob.NewEncoder(w)
+
+	err := encoder.Encode(m.user)
+	if err != nil {
+		return nil, err
+	}
+	err = encoder.Encode(m.time)
+	if err != nil {
+		return nil, err
+	}
+	err = encoder.Encode(m.msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return w.Bytes(), nil
+}
+
+func (m *chatMsg) GobDecode(buf []byte) error {
+	r := bytes.NewBuffer(buf)
+	decoder := gob.NewDecoder(r)
+
+	err := decoder.Decode(&m.user)
+	if err != nil {
+		return err
+	}
+	err = decoder.Decode(&m.time)
+	if err != nil {
+		return err
+	}
+	return decoder.Decode(&m.msg)
+}
 
 func main() {
 	client, subClient := Init()
+	defer client.Quit()
+	defer subClient.Quit()
 	welcome()
 	inputReader := bufio.NewReader(os.Stdin)
+	var cmsg chatMsg
+	cmsg.user = user
 	for {
 		input, err := inputReader.ReadString('\n')
 		if err != nil {
@@ -38,15 +82,22 @@ func main() {
 			os.Exit(0)
 		}
 
-		rcvCnt, err := client.Publish(channel, []byte(input))
-		if err != nil {
-			fmt.Printf("Error on Publish - %s", err)
-		} else {
-			fmt.Printf("Message sent to %d subscribers\n", rcvCnt)
-		}
+		cmsg.time = time.Now().Unix()
+		cmsg.msg = input
+
+		// rcvCnt, err := client.Publish(channel, []byte(cmsg))
+		// if err != nil {
+		// 	fmt.Printf("Error on Publish - %s", err)
+		// } else {
+		// 	fmt.Printf("Message sent to %d subscribers\n", rcvCnt)
+		// }
 	}
 	fmt.Println(subClient)
 }
+
+// func Msg2Byte(cmsg chatMsg) []byte {
+
+// }
 
 func welcome() {
 	fmt.Println("======================================")

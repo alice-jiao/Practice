@@ -7,6 +7,7 @@ import (
 	"redis"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestRedisConn(t *testing.T) {
@@ -27,6 +28,7 @@ func TestRedisConn(t *testing.T) {
 	if testVal != string(value) {
 		t.Error("value getting from redis is not equal to origin")
 	}
+	defer client.Quit()
 }
 
 func TestInit(t *testing.T) {
@@ -45,6 +47,8 @@ func TestInit(t *testing.T) {
 	subClient.Subscribe(channel)
 	client.Publish(channel, []byte("hi, i am online."))
 	fmt.Println("client init done")
+	defer client.Quit()
+	defer subClient.Quit()
 }
 
 func TestConfig(t *testing.T) {
@@ -82,4 +86,23 @@ func TestUsername(t *testing.T) {
 	}
 	user = fmt.Sprintf("%s:%d", hostname, os.Getpid())
 	fmt.Println("user:", user)
+}
+
+func TestEncode(t *testing.T) {
+	var oriMsg chatMsg
+	oriMsg.user = "localhost:1234"
+	oriMsg.time = time.Now().Unix()
+	oriMsg.msg = "hello world"
+	fmt.Println("msg:", oriMsg)
+
+	err := enc.Encode(oriMsg)
+	if err != nil {
+		t.Error(err)
+	}
+	cmsg := new(chatMsg)
+	err = dec.Decode(&cmsg)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("msg:", cmsg)
 }
