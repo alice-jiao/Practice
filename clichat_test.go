@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Unknwon/goconfig"
 	"os"
@@ -90,19 +91,18 @@ func TestUsername(t *testing.T) {
 
 func TestEncode(t *testing.T) {
 	var oriMsg chatMsg
-	oriMsg.user = "localhost:1234"
-	oriMsg.time = time.Now().Unix()
-	oriMsg.msg = "hello world"
-	fmt.Println("msg:", oriMsg)
+	oriMsg.User = "localhost:1234"
+	oriMsg.Time = time.Now().Unix()
+	oriMsg.Msg = "hello world"
+	fmt.Println("before encode:", oriMsg)
 
-	err := enc.Encode(oriMsg)
+	msg, err := oriMsg.jsonEncode()
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println("after encode", msg)
+
 	cmsg := new(chatMsg)
-	err = dec.Decode(&cmsg)
-	if err != nil {
-		t.Error(err)
-	}
-	fmt.Println("msg:", cmsg)
+	json.Unmarshal([]byte(msg), cmsg)
+	fmt.Println("after decode:", cmsg)
 }
