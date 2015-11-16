@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Unknwon/goconfig"
+	"gopkg.in/redis.v3"
 	"os"
-	"redis"
 	"strconv"
 	"time"
 )
@@ -26,9 +26,9 @@ var channel = "chat_channel"
 var user string
 
 func main() {
-	client, subClient := Init()
+	client := Init()
 	defer client.Quit()
-	defer subClient.Quit()
+
 	welcome()
 	inputReader := bufio.NewReader(os.Stdin)
 	var cmsg chatMsg
@@ -50,14 +50,25 @@ func main() {
 			fmt.Println("json encoding error,", err)
 		}
 
-		rcvCnt, err := client.Publish(channel, []byte(jsonMessage))
+		err = client.Publish(channel, jsonMessage).Err()
 		if err != nil {
-			fmt.Printf("Error on Publish - %s", err)
-		} else {
-			fmt.Printf("Message sent to %d subscribers\n", rcvCnt)
+			panic(err)
 		}
+		pubsub, err := client.Subscribe(channel)
+		if err != nil {
+			panic(err)
+		}
+
+		msg, err := pubsub.ReceiveMessage()
+		if err != nil {
+			panic(err)
+		}
+		recvMsg := new(chatMsg)
+		json.Unmarshal([]byte(msg.Payload), recvMsg)
+		fmt.Println(recvMsg.User, " ", time.Unix(recvMsg.Time, 0), " :")
+		fmt.Println(recvMsg.Msg)
 	}
-	fmt.Println(subClient)
+
 }
 
 func (m *chatMsg) jsonEncode() (string, error) {
@@ -78,7 +89,7 @@ func welcome() {
 	fmt.Println("======================================")
 }
 
-func Init() (redis.AsyncClient, redis.PubSubClient) {
+func Init() *redis.Client {
 	hostname, err := os.Hostname()
 	if err != nil {
 		fmt.Println("failed get hostname")
@@ -89,22 +100,15 @@ func Init() (redis.AsyncClient, redis.PubSubClient) {
 	if err != nil {
 		panic(err)
 	}
+	addr := cfg.host + ":" + strconv.Itoa(cfg.port)
 
-	spec := redis.DefaultSpec().Host(cfg.host).Port(cfg.port)
+	client := redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
 
-	client, err := redis.NewAsynchClientWithSpec(spec)
-	if err != nil {
-		panic(err)
-	}
-
-	subClient, err := redis.NewPubSubClientWithSpec(spec)
-	if err != nil {
-		panic(err)
-	}
-
-	subClient.Subscribe(channel)
-	client.Publish(channel, []byte("hi, i am online."))
-	return client, subClient
+	return client
 }
 
 func getConfig() (*redisConfig, error) {
