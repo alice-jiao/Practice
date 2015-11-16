@@ -1,4 +1,4 @@
-package chat
+package main
 
 import (
 	"bufio"
@@ -20,19 +20,42 @@ type chatMsg struct {
 	User string
 	Time int64
 	Msg  string
+	Type int
 }
+
+const (
+	MsgTypeBroadcast = 0
+	MsgTypeContent   = 1
+)
 
 var channel = "chat_channel"
 var user string
 
 func main() {
+	//init client
 	client := Init()
 	defer client.Quit()
 
+	pubsub, err := client.Subscribe(channel)
+	if err != nil {
+		panic(err)
+	}
+	defer pubsub.Close()
+
+	//echo welcome title
 	welcome()
+	//begin listening
+	go recvMsg(pubsub)
+
+	//send online broadcast
+	sendOnlineMsg(client)
+
+	//get user input for publish
 	inputReader := bufio.NewReader(os.Stdin)
+
 	var cmsg chatMsg
 	cmsg.User = user
+	cmsg.Type = MsgTypeContent
 	for {
 		input, err := inputReader.ReadString('\n')
 		if err != nil {
@@ -40,33 +63,13 @@ func main() {
 		}
 
 		if input == "\n" {
+			sendOfflineMsg(client)
 			os.Exit(0)
 		}
 
 		cmsg.Time = time.Now().Unix()
 		cmsg.Msg = input
-		jsonMessage, err := cmsg.jsonEncode()
-		if err != nil {
-			fmt.Println("json encoding error,", err)
-		}
-
-		err = client.Publish(channel, jsonMessage).Err()
-		if err != nil {
-			panic(err)
-		}
-		pubsub, err := client.Subscribe(channel)
-		if err != nil {
-			panic(err)
-		}
-
-		msg, err := pubsub.ReceiveMessage()
-		if err != nil {
-			panic(err)
-		}
-		recvMsg := new(chatMsg)
-		json.Unmarshal([]byte(msg.Payload), recvMsg)
-		fmt.Println(recvMsg.User, " ", time.Unix(recvMsg.Time, 0), " :")
-		fmt.Println(recvMsg.Msg)
+		publishMsg(client, &cmsg)
 	}
 
 }
@@ -134,4 +137,87 @@ func getConfig() (*redisConfig, error) {
 
 	cfg := &redisConfig{host: host, port: port}
 	return cfg, nil
+}
+
+func recvMsg(pubsub *redis.PubSub) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in recvMsg", r)
+		}
+	}()
+
+	//init message from redis
+	subMsg := new(redis.Message)
+	//init point of chatMsg for parsing message
+	recvMsg := new(chatMsg)
+
+	for {
+		msgi, err := pubsub.Receive()
+		if err != nil {
+			panic(err)
+		}
+
+		switch msg := msgi.(type) {
+		case *redis.Subscription:
+			// Ignore.
+			continue
+		case *redis.Pong:
+			// Ignore.
+			continue
+		case *redis.Message:
+			subMsg = msg
+		case *redis.PMessage:
+			subMsg = &redis.Message{
+				Channel: msg.Channel,
+				Pattern: msg.Pattern,
+				Payload: msg.Payload,
+			}
+		default:
+			fmt.Errorf("redis: unknown message: %T", msgi)
+			continue
+		}
+
+		json.Unmarshal([]byte(subMsg.Payload), recvMsg)
+		printMsg(recvMsg)
+	}
+}
+
+func printMsg(chatMsg *chatMsg) {
+	if chatMsg.User == user {
+		return
+	}
+
+	if chatMsg.Type == MsgTypeBroadcast {
+		printSimpleMsg(chatMsg)
+	} else {
+		time := time.Unix(chatMsg.Time, 0)
+		fmt.Printf("%s %d-%d-%d %d:%d:%d :\n", chatMsg.User, time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second())
+		fmt.Println(chatMsg.Msg)
+	}
+}
+
+func printSimpleMsg(chatMsg *chatMsg) {
+	fmt.Println(chatMsg.Msg)
+}
+
+func sendOfflineMsg(client *redis.Client) {
+	onlineMsg := &chatMsg{user, time.Now().Unix(), user + " is offline...", MsgTypeBroadcast}
+	publishMsg(client, onlineMsg)
+}
+
+func sendOnlineMsg(client *redis.Client) {
+	offlineMsg := &chatMsg{user, time.Now().Unix(), user + " is online!", MsgTypeBroadcast}
+	publishMsg(client, offlineMsg)
+}
+
+func publishMsg(client *redis.Client, msg *chatMsg) {
+	jsonMessage, err := msg.jsonEncode()
+	if err != nil {
+		fmt.Println("json encoding error,", err)
+	}
+
+	err = client.Publish(channel, jsonMessage).Err()
+	if err != nil {
+		panic(err)
+	}
 }

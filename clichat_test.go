@@ -1,4 +1,4 @@
-package chat
+package main
 
 import (
 	"encoding/json"
@@ -79,6 +79,7 @@ func TestEncode(t *testing.T) {
 	oriMsg.User = "localhost:1234"
 	oriMsg.Time = time.Now().Unix()
 	oriMsg.Msg = "hello world"
+	oriMsg.Type = MsgTypeContent
 	fmt.Println("before encode:", oriMsg)
 
 	msg, err := oriMsg.jsonEncode()
@@ -101,7 +102,7 @@ func TestPubSub(t *testing.T) {
 	fmt.Println("client start")
 	// defer client.Close()
 
-	pubMsg := &chatMsg{"localhost:1234", time.Now().Unix(), "hello, i am online !"}
+	pubMsg := &chatMsg{"localhost:1234", time.Now().Unix(), "hello, i am online !", MsgTypeContent}
 	jsonMessage, err := pubMsg.jsonEncode()
 	if err != nil {
 		t.Error(err)
@@ -153,8 +154,9 @@ func TestPubSub(t *testing.T) {
 			fmt.Println("recv msg:", subMsg)
 
 			json.Unmarshal([]byte(subMsg.Payload), recvMsg)
-			fmt.Println(recvMsg.User, " ", time.Unix(recvMsg.Time, 0).Format(time.ANSIC), " :")
-			fmt.Println(recvMsg.Msg)
+			// fmt.Println(recvMsg.User, " ", time.Unix(recvMsg.Time, 0).Format(time.ANSIC), " :")
+			// fmt.Println(recvMsg.Msg)
+			printMsg(recvMsg)
 		}
 	}(pubsub)
 
