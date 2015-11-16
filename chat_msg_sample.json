@@ -1,0 +1,6 @@
+{
+    "user":"localhost:1234",   //user identifier
+    "time":12345678,           //msg create time, unix timestamp
+    "msg":"hello world",       //msg content
+    "type":1                   //msg type, 0 for broadcast, 1 for chat content
+}
